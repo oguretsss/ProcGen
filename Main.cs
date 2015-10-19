@@ -50,7 +50,7 @@ public class DungeonGenerator
 	int[,] dungeonMap, objectsLayer;
 	int columns, rows;
 	List<DungeonRoom> rooms = new List<DungeonRoom>();
-	List<DungeonDoor> doors = new List<DungeonDoor>();
+//	List<DungeonDoor> doors = new List<DungeonDoor>();
 	
 	public DungeonRoom startRoom;
 	
@@ -99,6 +99,7 @@ public class DungeonGenerator
                 {
                     ConnectRoomsV2(rooms[k], rooms[k + 1]);
                 }*/
+        PlaceDoorsOnMap();
 		startRoom = rooms[rand.Next(0, rooms.Count - 1)];
 		return dungeonMap;
 		
@@ -324,25 +325,11 @@ public class DungeonGenerator
 		//horizontal corridor
 		for (int x = x1; x != x2 + xDir; x += xDir)
 		{
-			if (dungeonMap[x, y1] == VERTICAL_WALL_TILE) 
+			if(dungeonMap[x, y1] == CORNER_TILE || dungeonMap[x, y1] == HORIZONTAL_WALL_TILE)
 			{
-				dungeonMap[x, y1] = DOOR_TILE;
-				doors.Add(new DungeonDoor(x, y1));
-			}
-			else if(dungeonMap[x, y1] == CORNER_TILE || dungeonMap[x, y1] == HORIZONTAL_WALL_TILE)
-			{
-				y1 += yDir;
-				switch(dungeonMap[x, y1])
-				{
-				case VERTICAL_WALL_TILE:
-					dungeonMap[x - xDir, y1] = FLOOR_TILE_0;
-					dungeonMap[x, y1] = DOOR_TILE;
-					break;
-				default:
-					dungeonMap[x - xDir, y1] = FLOOR_TILE_0;
-					dungeonMap[x, y1] = FLOOR_TILE_0;
-					break;
-				}
+			    y1 += yDir;
+				dungeonMap[x - xDir, y1] = FLOOR_TILE_0;
+				dungeonMap[x, y1] = FLOOR_TILE_0;
 			}
 			else
 			{
@@ -353,25 +340,11 @@ public class DungeonGenerator
 		//vertical corridor
 		for (int y = y1; y != y2 + yDir; y += yDir)
 		{
-			if(dungeonMap[x2, y] == HORIZONTAL_WALL_TILE) 
-			{
-				dungeonMap[x2, y] = DOOR_TILE;
-				doors.Add(new DungeonDoor(x2, y));
-			}
-			else if(dungeonMap[x2, y] == CORNER_TILE || dungeonMap[x2, y] == VERTICAL_WALL_TILE)
+			if(dungeonMap[x2, y] == CORNER_TILE || dungeonMap[x2, y] == VERTICAL_WALL_TILE)
 			{
 				x2 += xDir;
-				switch(dungeonMap[x2, y])
-				{
-				case VERTICAL_WALL_TILE:
-					dungeonMap[x2, y - yDir] = FLOOR_TILE_0;
-					dungeonMap[x2, y] = DOOR_TILE;
-					break;
-				default:
-					dungeonMap[x2, y - yDir] = FLOOR_TILE_0;
-					dungeonMap[x2, y] = FLOOR_TILE_0;
-					break;
-				}
+				dungeonMap[x2, y - yDir] = FLOOR_TILE_0;
+				dungeonMap[x2, y] = FLOOR_TILE_0;
 			}
 			else
 			{
@@ -426,19 +399,26 @@ public class DungeonGenerator
 		
 	}
 	
-	public void RemoveExcessDoors()
-	{
-		foreach(DungeonDoor door in doors)
-		{
-			int doorX = door.X;
-			int doorY = door.Y;
-			if ((dungeonMap[doorX - 1, doorY] == FLOOR_TILE_0 || dungeonMap[doorX + 1, doorY] == FLOOR_TILE_0)
-			    &&(dungeonMap[doorX, doorY - 1] == FLOOR_TILE_0 || dungeonMap[doorX, doorY + 1] == FLOOR_TILE_0))
-			{
-				dungeonMap[doorX, doorY] =  FLOOR_TILE_0;
-			}
-		}
-	}
+    void PlaceDoorsOnMap()
+    {
+        foreach (DungeonRoom room in rooms)
+        {
+           for (int x = room.UpperLeftX - 1; x < room.LowerRightX + 1; x++)
+    		{
+    			for (int y = room.UpperLeftY - 1; y < room.LowerRightY + 1; y++)
+    			{
+    				if(x == room.UpperLeftX - 1 || x == room.LowerRightX)
+    				{
+    					dungeonMap[x, y] = (dungeonMap[x, y] == FLOOR_TILE_0) ? DOOR_TILE : dungeonMap[x, y];
+    				}
+    				else if (y == room.UpperLeftY - 1 || y == room.LowerRightY)
+    				{
+    					dungeonMap[x, y] = (dungeonMap[x, y] == FLOOR_TILE_0) ? DOOR_TILE : dungeonMap[x, y];
+    				}
+    			} 
+    		} 
+        }
+    }
 	
 	public bool CellInsideRoomBounds(DungeonRoom room, int x, int y) 
 	{
