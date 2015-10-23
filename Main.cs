@@ -8,13 +8,13 @@ class Program
 	static void Main()
 	{
 		DungeonGenerator dunGen = new DungeonGenerator();
-		dunGen.CreateSimpleDungeonMap(8);
+		dunGen.CreateSimpleDungeonMap(10);
 		
 		Console.WriteLine(dunGen.ToString());
 		for (int i = 0; i < 100; i++)
 		{
 			dunGen = new DungeonGenerator();
-			dunGen.CreateSimpleDungeonMap(8);
+			dunGen.CreateSimpleDungeonMap(10);
 			using (StreamWriter sw = File.AppendText(@"dungeons2.txt"))
 				sw.WriteLine(dunGen.ToString());
 		}
@@ -36,18 +36,29 @@ public class DungeonGenerator
 	private const int dungeonStretchCoeff = 9;
 	private const int roomSurroundings = 2;
 	
-	const int WALL_TILE             = 9;
-	const int SURROUNDING_WALL_TILE = 6;
-	const int FLOOR_TILE_0          = 0;
+	int[,] dungeonMap; 
+    const int FLOOR_TILE_0          = 0;
 	const int VERTICAL_WALL_TILE    = 1;
 	const int HORIZONTAL_WALL_TILE  = 2;
 	const int CORNER_TILE           = 3;
+	const int DOOR_TILE             = 5;
+	const int SURROUNDING_WALL_TILE = 6;
 	const int START_TILE            = 7;
 	const int EXIT_TILE             = 8;
-	const int DOOR_TILE             = 5;
-	const int CHEST_TILE            = 10;
+	const int WALL_TILE             = 9;
 	
-	int[,] dungeonMap, objectsLayer;
+	int[,] objectsLayer;
+	const int RESERVED_0 = 0;
+	const int RESERVED_1 = 1;
+	const int RESERVED_2 = 2;
+	const int RESERVED_3 = 3;
+	const int RESERVED_4 = 4;
+	const int RESERVED_5 = 5;
+	const int RESERVED_6 = 6;
+	const int RESERVED_7 = 7;
+	const int RESERVED_8 = 8;
+	const int RESERVED_9 = 9;
+	
 	int columns, rows;
 	List<DungeonRoom> rooms = new List<DungeonRoom>();
 //	List<DungeonDoor> doors = new List<DungeonDoor>();
@@ -93,12 +104,7 @@ public class DungeonGenerator
 			rooms.Add(roomToAdd);
 			PlaceRoomOnMap(roomToAdd);
 		}
-		//Connect all rooms
-		//ConnectRoomsThroughCenter();
-		/*for(int k = 0; k < rooms.Count - 1; k++)
-                {
-                    ConnectRoomsV2(rooms[k], rooms[k + 1]);
-                }*/
+
         PlaceDoorsOnMap();
 		startRoom = rooms[rand.Next(0, rooms.Count - 1)];
 		return dungeonMap;
@@ -218,100 +224,6 @@ public class DungeonGenerator
 		return closestRoom;
 	}
 	
-	void ConnectRooms(DungeonRoom room1, DungeonRoom room2)
-	{
-		int x1 = room1.CenterX;
-		int y1 = room1.CenterY;
-		int x2 = room2.CenterX;
-		int y2 = room2.CenterY;
-		
-		int xDir = (x2 > x1) ? 1 : -1;
-		int yDir = (y2 > y1) ? 1 : -1;
-		
-		//horizontal corridor
-		for (int x = x1; x != x2; x += xDir)
-		{
-			if (dungeonMap[x, y1] == SURROUNDING_WALL_TILE) {
-				if((dungeonMap[x, y1 + 1] == SURROUNDING_WALL_TILE || dungeonMap[x, y1 + 1] == DOOR_TILE) 
-				   && (dungeonMap[x, y1 - 1] == SURROUNDING_WALL_TILE || dungeonMap[x, y1 - 1] == DOOR_TILE)
-				   && dungeonMap[x + 1, y1] != SURROUNDING_WALL_TILE)
-				{
-					dungeonMap[x, y1] = DOOR_TILE;
-					doors.Add(new DungeonDoor(x, y1));
-				}
-				else
-				{
-					dungeonMap[x, y1] = FLOOR_TILE_0;
-				}
-			}
-			else
-			{
-				dungeonMap[x, y1] = FLOOR_TILE_0;
-			}
-		}
-		
-		//vertical corridor
-		for (int y = y1; y != y2; y += yDir)
-		{
-			if(dungeonMap[x2, y] == SURROUNDING_WALL_TILE) 
-			{
-				if ((dungeonMap[x2 + 1, y] == SURROUNDING_WALL_TILE || dungeonMap[x2 + 1, y] == DOOR_TILE) &&
-				    (dungeonMap[x2 - 1, y] == SURROUNDING_WALL_TILE || dungeonMap[x2 - 1, y] == DOOR_TILE))
-				{
-					dungeonMap[x2, y] = DOOR_TILE;
-					doors.Add(new DungeonDoor(x2, y));
-				}
-				else
-				{
-					dungeonMap[x2, y] = FLOOR_TILE_0; 
-				}
-			}
-			else
-			{
-				dungeonMap[x2, y] = FLOOR_TILE_0;
-			}
-		}
-	}
-	
-	void ConnectRoomsV2(DungeonRoom room1, DungeonRoom room2)
-	{
-		int x1 = room1.CenterX;
-		int y1 = room1.CenterY;
-		int x2 = room2.CenterX;
-		int y2 = room2.CenterY;
-		
-		int xDir = (x2 > x1) ? 1 : -1;
-		int yDir = (y2 > y1) ? 1 : -1;
-		
-		//horizontal corridor
-		for (int x = x1; x != x2; x += xDir)
-		{
-			if (dungeonMap[x, y1] == VERTICAL_WALL_TILE) 
-			{
-				dungeonMap[x, y1] = DOOR_TILE;
-				doors.Add(new DungeonDoor(x, y1));
-			}
-			else if(dungeonMap[x, y1] == CORNER_TILE || dungeonMap[x, y1] == HORIZONTAL_WALL_TILE)
-			{
-				y1 += yDir;
-				switch(dungeonMap[x, y1])
-				{
-				case VERTICAL_WALL_TILE:
-					dungeonMap[x - xDir, y1] = FLOOR_TILE_0;
-					dungeonMap[x, y1] = DOOR_TILE;
-					break;
-				default:
-					dungeonMap[x - xDir, y1] = FLOOR_TILE_0;
-					dungeonMap[x, y1] = FLOOR_TILE_0;
-					break;
-				}
-			}
-			else
-			{
-				dungeonMap[x, y1] = FLOOR_TILE_0;
-			}
-		}
-	}	
 	void ConnectRoomWithCell(DungeonRoom room1, int targetX, int targetY)
 	{
 		int x1 = room1.CenterX;
@@ -387,17 +299,7 @@ public class DungeonGenerator
 		ConnectRoomWithCell(target, closestDungeonCell[0], closestDungeonCell[1]);
 		
 	}
-	
-	public void ConnectRoomsThroughCenter()
-	{
-		DungeonRoom closestToCenter = FindClosestToCenterRoom();
-		
-		foreach (DungeonRoom room in rooms) 
-		{
-			ConnectRooms(closestToCenter, room);
-		}
-		
-	}
+
 	
     void PlaceDoorsOnMap()
     {
