@@ -45,10 +45,10 @@ public class DungeonGenerator
 	bool[,] discoveredMap;
 	
 	int columns, rows;
-	List<DungeonRoom> rooms = new List<DungeonRoom>();
+	List<DungeonRoom> rooms;
 	//	List<DungeonDoor> doors = new List<DungeonDoor>();
 	
-	public DungeonRoom startRoom;
+	public DungeonRoom startRoom, exitRoom;
 	
 	/// <summary>
 	/// Creates the simple dungeon map with size depending on the amount of rooms.
@@ -63,7 +63,7 @@ public class DungeonGenerator
 		rows = columns;
 		fogOfWarMap = new bool[columns, rows];
 		dungeonMap  = new int[columns, rows];
-		
+		rooms = new List<DungeonRoom>();
 		//fill dungeon with walls
 		for (int x = 0; x < columns; x++) 
 		{
@@ -96,14 +96,20 @@ public class DungeonGenerator
 		}
 		
 		PlaceDoorsOnMap();
-		startRoom = rooms[Random.Range(0, rooms.Count)];
+		int startRoomNumber = Random.Range(0, rooms.Count);
+		int exitRoomNumber = Random.Range(0, rooms.Count);
+		while (exitRoomNumber == startRoomNumber)
+		{
+			exitRoomNumber = Random.Range(0, rooms.Count);
+		}
+		startRoom = rooms[startRoomNumber];
+		exitRoom = rooms[exitRoomNumber];
 		dungeonMap[startRoom.CenterX, startRoom.CenterY] = START_TILE;
+		dungeonMap[exitRoom.CenterX, exitRoom.CenterY] = EXIT_TILE;
 		renderingMap = CreateRenderingMap(dungeonMap);
 		walkableMap = CreateWalkableMap(renderingMap);
 		//return CreateRenderingMap(dungeonMap);
-		LabMapContainer mapContainer = new LabMapContainer(dungeonMap, renderingMap, fogOfWarMap, walkableMap);
-
-		return mapContainer;
+		return new LabMapContainer(dungeonMap, renderingMap, fogOfWarMap, walkableMap, rooms);
 	}
 	
 	bool AbleToPlace(DungeonRoom room)
@@ -385,6 +391,9 @@ public class DungeonGenerator
 				case START_TILE:
 					renderingMap[x,y] = START_TILE;
 					break;
+				case EXIT_TILE:
+					renderingMap[x,y] = EXIT_TILE;
+					break;
 				case DOOR_TILE:
 					renderingMap[x,y] = DOOR_TILE;
 					break;
@@ -417,6 +426,7 @@ public class DungeonGenerator
 				case FLOOR_TILE_0:
 				case DOOR_TILE:
 				case START_TILE:
+				case EXIT_TILE:
 					walkableMap[x,y] = true;
 					break;
 				default:
