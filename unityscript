@@ -55,7 +55,7 @@ public class DungeonGenerator
 	/// </summary>
 	/// <returns>LabMapContainer object</returns>
 	/// <param name="roomsAmount">How many rooms will the dungeon have.</param>
-	public LabMapContainer CreateSimpleDungeonMap(int roomsAmount)
+	public LabMapContainer CreateSimpleDungeonMap(int roomsAmount, bool hasExitToNextFloor)
 	{
 		//Assess approximatie dungeon dimensions
 		int approxDungeonArea = (int) (dungeonStretchCoeff * roomsAmount * ((minRoomWidth * minRoomHeight) + (maxRoomWidth * maxRoomHeight)) / 2);
@@ -96,16 +96,20 @@ public class DungeonGenerator
 		}
 		
 		PlaceDoorsOnMap();
+
 		int startRoomNumber = Random.Range(0, rooms.Count);
-		int exitRoomNumber = Random.Range(0, rooms.Count);
-		while (exitRoomNumber == startRoomNumber)
-		{
-			exitRoomNumber = Random.Range(0, rooms.Count);
-		}
 		startRoom = rooms[startRoomNumber];
-		exitRoom = rooms[exitRoomNumber];
 		dungeonMap[startRoom.CenterX, startRoom.CenterY] = START_TILE;
-		dungeonMap[exitRoom.CenterX, exitRoom.CenterY] = EXIT_TILE;
+
+		if (hasExitToNextFloor) {
+			int exitRoomNumber = Random.Range (0, rooms.Count);
+			while (exitRoomNumber == startRoomNumber) {
+				exitRoomNumber = Random.Range (0, rooms.Count);
+			}
+			exitRoom = rooms [exitRoomNumber];
+			dungeonMap [exitRoom.CenterX, exitRoom.CenterY] = EXIT_TILE;
+		}
+
 		renderingMap = CreateRenderingMap(dungeonMap);
 		walkableMap = CreateWalkableMap(renderingMap);
 		//return CreateRenderingMap(dungeonMap);
@@ -457,64 +461,4 @@ public class DungeonGenerator
 		return sb.ToString();
 	}
 }
-public class DungeonRoom 
-{
-	public int UpperLeftX  { get; set; }
-	public int UpperLeftY  { get; set; }
-	public int LowerRightX { get; set; }
-	public int LowerRightY { get; set; }
-	public int CenterX     { get; set; }
-	public int CenterY     { get; set; }
-	public int RoomWidth   { get; set; }
-	public int RoomHeight  { get; set; }
-	
-	
-	public DungeonRoom(int x, int y, int width, int height)
-	{
-		UpperLeftX = x;
-		UpperLeftY = y;
-		RoomWidth = width;
-		RoomHeight = height;
-		LowerRightX = UpperLeftX + RoomWidth;
-		LowerRightY = UpperLeftY + RoomHeight;
-		CenterX = UpperLeftX + RoomWidth / 2;
-		CenterY = UpperLeftY + RoomHeight / 2;
-	}
-	
-	/*public bool UnitInsideRoom(Vector3 transform) 
-            {
-                return((transform.x >= UpperLeftX && transform.x <= LowerRightX) && (transform.y >= LowerRightY && transform.y <= UpperLeftY));
-            }*/
-	
-	public bool UnitInsideRoom(int x, int y) 
-	{
-		return((x >= UpperLeftX && x <= LowerRightX) && (y >= UpperLeftY && y <= LowerRightY));
-	}
-	
-	/*public bool UnitInsideRoom(Vector2 coords) 
-            {
-                return((coords.x >= UpperLeftX && coords.x <= LowerRightX) && (coords.y >= LowerRightY && coords.y <= UpperLeftY));
-            }*/
-	
-	public override string ToString()
-	{
-		return System.String.Format("Room. Center coords: {0};{1}. Width is {2}, height is {3}.", CenterX, CenterY, RoomWidth, RoomHeight);
-	}
-	
-} 
 
-public class DungeonDoor
-{
-	public int X { get; set; }
-	public int Y { get; set; }
-	
-	public bool Locked { get; set; }
-	
-	public DungeonDoor(int x, int y)
-	{
-		X = x;
-		Y = y;
-		Locked = false;
-	}
-	
-}
