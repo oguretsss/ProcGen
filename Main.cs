@@ -1,81 +1,31 @@
 using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Text;
+using System.Collections.Generic;
+using ConsoleApplication1;
+
 
 class Program
 {
+    public static Random rand = new Random();
     static void Main()
     {
         DungeonGenerator dunGen = new DungeonGenerator();
-        DungeonData dungeon = dunGen.CreateSimpleDungeonMap(10);
-
-        Console.WriteLine(dunGen.ToString());
+        LabMapContainer dungeon = dunGen.CreateSimpleDungeonMap(10, true);
+        DungeonRoom[] roomParams = { new DungeonRoom(RoomType.KeyLockedRoom), new DungeonRoom(RoomType.SecretRoom), new DungeonRoom(RoomType.SecretRoom), new DungeonRoom(RoomType.CollapsedRoom) };
+        Console.WriteLine(dungeon.ToString());
         for (int i = 0; i < 100; i++)
         {
-            dunGen = new DungeonGenerator();
-            dungeon = dunGen.CreateSimpleDungeonMap(10);
-            using (StreamWriter sw = File.AppendText(@"dungeons2.txt"))
+            dungeon = dunGen.CreateSimpleDungeonMap(8, true, roomParams);
+            using (StreamWriter sw = File.AppendText(@"dungeons190716-01.dnn"))
                 sw.WriteLine(dungeon.ToString());
         }
         Console.WriteLine("Success");
         Console.ReadKey();
     }
 }
-
-public class DungeonData
-{
-    public int Columns         { get; set; }
-    public int Rows            { get; set; }
-    
-    public int[,] DungeonMap   { get; set; }
-    public bool[,] WalkableMap { get; set; }
-
-    public List<DungeonRoom> rooms;
-
-    public DungeonData(int columns, int rows, int[,] dungeonMap, bool[,] walkableMap, List<DungeonRoom> roomsArray)
-    {
-        Columns = columns;
-        Rows = rows;
-        DungeonMap = dungeonMap;
-        WalkableMap = walkableMap;
-        rooms = roomsArray;
-    }
-
-    public override string ToString()
-    {
-        StringBuilder sb = new StringBuilder();
-        sb.Append("\n=============Start of the dungeon==================\n");
-        sb.Append(System.String.Format("Dungeon of {0} columns and {1} rows, containing {2} rooms.\n", Columns, Rows, rooms.Count));
-        sb.Append("Dungeon map:\n");
-        for (int x = 0; x < Columns; x++)
-        {
-            sb.Append("\n");
-            for (int y = 0; y < Rows; y++)
-            {
-                sb.Append(DungeonMap[x, y].ToString() + " ");
-            }
-        }
-        sb.Append("\nWalkable map:\n");
-        for (int x = 0; x < Columns; x++)
-        {
-            sb.Append("\n");
-            for (int y = 0; y < Rows; y++)
-            {
-                if (WalkableMap[x, y])
-                    sb.Append("0 ");
-                else
-                    sb.Append("1 ");
-            }
-        }
-        sb.Append("\n=============End of the dungeon==================\n");
-        return sb.ToString();
-    }
-}
 public class DungeonGenerator
 {
-
-    Random rand = new Random();
 
     readonly int minRoomWidth = 4;
     readonly int maxRoomWidth = 8;
@@ -83,49 +33,59 @@ public class DungeonGenerator
     readonly int maxRoomHeight = 7;
 
     //used in calculating dungeon's dimensions
-    private const int dungeonStretchCoeff = 9;
+    private const float dungeonStretchCoeff = 9.5f;
     private const int roomSurroundings = 2;
 
     int[,] dungeonMap;
-    const int FLOOR_TILE_0          = 0;
-    const int VERTICAL_WALL_TILE    = 1;
-    const int HORIZONTAL_WALL_TILE  = 2;
-    const int CORNER_TILE           = 3;
-    const int FOG_TRIGGER_TILE      = 4;
-    const int DOOR_TILE             = 5;
-    const int SURROUNDING_WALL_TILE = 6;
-    const int START_TILE            = 7;
-    const int EXIT_TILE             = 8;
-    const int WALL_TILE             = 9;
 
-    int[,] objectsLayer;
-    const int RESERVED_0 = 0;
-    const int RESERVED_1 = 1;
-    const int RESERVED_2 = 2;
-    const int RESERVED_3 = 3;
-    const int RESERVED_4 = 4;
-    const int RESERVED_5 = 5;
-    const int RESERVED_6 = 6;
-    const int RESERVED_7 = 7;
-    const int RESERVED_8 = 8;
-    const int RESERVED_9 = 9;
+    #region Constants
+
+    //Main Tiles
+    public const int FLOOR_TILE_0 = 0;
+    public const int VERTICAL_WALL_TILE = 1;
+    public const int HORIZONTAL_WALL_TILE = 2;
+    public const int CORNER_TILE = 3;
+    public const int FOG_TRIGGER_TILE = 4;
+    public const int DOOR_TILE = 5;
+    public const int SURROUNDING_WALL_TILE = 6;
+    public const int START_TILE = 7;
+    public const int EXIT_TILE = 8;
+    public const int WALL_TILE = 9;
+    public const int SECRET_DOOR_TILE = 10;
+    public const int RADIATION_TILE = 11;
+    public const int KEY_LOCKED_DOOR_TILE = 12;
+    public const int COLLAPSED_DOOR_TILE = 13;
+    public const int UNLOCKED_DOOR_TILE = 14;
+    public const int CLEARED_DOOR_TILE = 15;
+    public const int COLUMN_TILE = 16;
+    public const int BROKEN_TERMINAL_TILE = 17;
+
+    #endregion
+    public bool[,] fogOfWarMap, walkableMap;
+    public int[,] renderingMap;
+    public int[,] interactableObjectsMap;
 
     int columns, rows;
-    List<DungeonRoom> rooms = new List<DungeonRoom>();
+    List<DungeonRoom> rooms;
     //	List<DungeonDoor> doors = new List<DungeonDoor>();
 
-    public DungeonRoom startRoom;
-
-
-    public DungeonData CreateSimpleDungeonMap(int roomsAmount)
+    public DungeonRoom startRoom, exitRoom;
+    /// <summary>
+    /// Creates the simple dungeon map with size depending on the amount of rooms.
+    /// </summary>
+    /// <returns>LabMapContainer object</returns>
+    /// <param name="roomsAmount">How many rooms will the dungeon have.</param>
+    /// /// <param name="hasExitToNextFloor">True if this dungeon is not the last floor of the dungeon system.</param>
+    /// /// <param name="specialRooms">Optional array of rooms with custom RoomType</param>
+    public LabMapContainer CreateSimpleDungeonMap(int roomsAmount, bool hasExitToNextFloor, params DungeonRoom[] specialRooms)
     {
         //Assess approximatie dungeon dimensions
-        int approxDungeonArea = (int)(dungeonStretchCoeff * roomsAmount * ((minRoomWidth * minRoomHeight) + (maxRoomWidth * maxRoomHeight)) / 2);
+        int approxDungeonArea = (int)(dungeonStretchCoeff * (roomsAmount + specialRooms.Length) * ((minRoomWidth * minRoomHeight) + (maxRoomWidth * maxRoomHeight)) / 2);
         columns = (int)Math.Sqrt(approxDungeonArea);
         rows = columns;
+        fogOfWarMap = new bool[columns, rows];
         dungeonMap = new int[columns, rows];
-        bool[,] walkableMap = new bool[columns, rows];
-
+        rooms = new List<DungeonRoom>();
         //fill dungeon with walls
         for (int x = 0; x < columns; x++)
         {
@@ -138,63 +98,50 @@ public class DungeonGenerator
         //create rooms array and place them on map
         for (int i = 0; i < roomsAmount; i++)
         {
-            int roomX = rand.Next(4, columns - maxRoomWidth - 4);
-            int roomY = rand.Next(4, rows - maxRoomHeight - 4);
-            int roomWidth = rand.Next(minRoomWidth, maxRoomWidth);
-            int roomHeight = rand.Next(minRoomHeight, maxRoomHeight);
-            DungeonRoom roomToAdd = new DungeonRoom(roomX, roomY, roomWidth, roomHeight);
-            int iterations = 0;
-
-            while (!AbleToPlace(roomToAdd))
-            {
-                roomX = rand.Next(4, columns - maxRoomWidth - 4);
-                roomY = rand.Next(4, rows - maxRoomHeight - 4);
-                roomToAdd = new DungeonRoom(roomX, roomY, roomWidth, roomHeight);
-                iterations++;
-                if (iterations > 14000) return new DungeonData(columns, rows, dungeonMap, walkableMap, rooms);
-            }
+            DungeonRoom roomToAdd = GenerateNewRoom();
             rooms.Add(roomToAdd);
             PlaceRoomOnMap(roomToAdd);
         }
 
-        PlaceDoorsOnMap();
-        startRoom = rooms[rand.Next(0, rooms.Count - 1)];
-        dungeonMap[startRoom.CenterX, startRoom.CenterY] = START_TILE;
-        walkableMap = GenerateWalkableMap();
-        return new DungeonData(columns, rows, dungeonMap, walkableMap, rooms);
-       // return dungeonMap;
 
-    }
-
-    private bool[,] GenerateWalkableMap()
-    {
-        bool[,] walkMap = new bool[columns, rows];
-        for (int x = 0; x < columns; x++)
+        foreach (DungeonRoom specialRoom in specialRooms)
         {
-            for (int y = 0; y < rows; y++)
+            DungeonRoom targetRoom = GenerateNewRoom();
+            if (targetRoom == null)
             {
-                switch (dungeonMap[x, y])
-                {
-                    case VERTICAL_WALL_TILE:
-                    case HORIZONTAL_WALL_TILE:
-                    case SURROUNDING_WALL_TILE:
-                    case WALL_TILE:
-                    case CORNER_TILE:
-                        walkMap[x, y] = false;
-                        break;
-                    case DOOR_TILE:
-                    case START_TILE:
-                    case FLOOR_TILE_0:
-                    case EXIT_TILE:
-                    case FOG_TRIGGER_TILE:
-                        walkMap[x, y] = true;
-                        break;
-                    default:
-                        break;
-                }
+                Console.WriteLine("Couldn't find a place for a secret room =(((");
+                continue;
             }
+            targetRoom.roomType = specialRoom.roomType;
+            rooms.Add(targetRoom);
+            PlaceRoomOnMap(targetRoom);
         }
-        return walkMap;
+        PlaceDoorsOnMap();
+
+
+        int startRoomNumber = Program.rand.Next(0, rooms.Count);
+        while (rooms[startRoomNumber].roomType != RoomType.RegularlRoom)
+        {
+            startRoomNumber = Program.rand.Next(0, rooms.Count);
+        }
+        startRoom = rooms[startRoomNumber];
+        dungeonMap[startRoom.CenterX, startRoom.CenterY] = START_TILE;
+
+        if (hasExitToNextFloor)
+        {
+            int exitRoomNumber = Program.rand.Next(0, rooms.Count);
+            while (exitRoomNumber == startRoomNumber || rooms[exitRoomNumber].roomType != RoomType.RegularlRoom)
+            {
+                exitRoomNumber = Program.rand.Next(0, rooms.Count);
+            }
+            exitRoom = rooms[exitRoomNumber];
+            dungeonMap[exitRoom.CenterX, exitRoom.CenterY] = EXIT_TILE;
+        }
+
+        renderingMap = CreateRenderingMap(dungeonMap);
+        walkableMap = CreateWalkableMap(renderingMap);
+        //return CreateRenderingMap(dungeonMap);
+        return new LabMapContainer(dungeonMap, renderingMap, fogOfWarMap, walkableMap, rooms);
     }
 
     bool AbleToPlace(DungeonRoom room)
@@ -215,6 +162,26 @@ public class DungeonGenerator
         return true;
     }
 
+    DungeonRoom GenerateNewRoom()
+    {
+        int roomX = Program.rand.Next(4, columns - maxRoomWidth - 4);
+        int roomY = Program.rand.Next(4, rows - maxRoomHeight - 4);
+        int roomWidth = Program.rand.Next(minRoomWidth, maxRoomWidth);
+        int roomHeight = Program.rand.Next(minRoomHeight, maxRoomHeight);
+        DungeonRoom targetRoom = new DungeonRoom(roomX, roomY, roomWidth, roomHeight);
+        int iterations = 0;
+
+        while (!AbleToPlace(targetRoom))
+        {
+            roomX = Program.rand.Next(4, columns - maxRoomWidth - 4);
+            roomY = Program.rand.Next(4, rows - maxRoomHeight - 4);
+            targetRoom = new DungeonRoom(roomX, roomY, roomWidth, roomHeight);
+            iterations++;
+            if (iterations > 14000) return null;
+        }
+
+        return targetRoom;
+    }
     void PlaceRoomOnMap(DungeonRoom room)
     {
         for (int x = room.UpperLeftX - roomSurroundings; x < room.LowerRightX + roomSurroundings; x++)
@@ -331,9 +298,22 @@ public class DungeonGenerator
             }
             else
             {
-                dungeonMap[x, y1] = FLOOR_TILE_0;
+                if (dungeonMap[x, y1] == FOG_TRIGGER_TILE || dungeonMap[x, y1] == SECRET_DOOR_TILE)
+                {
+                    continue;
+                }
+                else
+                {
+                    if (dungeonMap[x, y1] == VERTICAL_WALL_TILE && room1.roomType == RoomType.SecretRoom)
+                    {
+                        dungeonMap[x, y1] = SECRET_DOOR_TILE;
+                    }
+                    else
+                    {
+                        dungeonMap[x, y1] = FLOOR_TILE_0;
+                    }
+                }
             }
-            
         }
 
         //vertical corridor
@@ -347,13 +327,31 @@ public class DungeonGenerator
             }
             else
             {
-                dungeonMap[x2, y] = FLOOR_TILE_0;
+                if (dungeonMap[x2, y] == FOG_TRIGGER_TILE || dungeonMap[x2, y] == SECRET_DOOR_TILE)
+                {
+                    continue;
+                }
+                else
+                {
+                    if (dungeonMap[x2, y] == HORIZONTAL_WALL_TILE && room1.roomType == RoomType.SecretRoom)
+                    {
+                        dungeonMap[x2, y] = SECRET_DOOR_TILE;
+                    }
+                    else
+                    {
+                        dungeonMap[x2, y] = FLOOR_TILE_0;
+                    }
+                }
             }
-            dungeonMap[x2, y1] = FOG_TRIGGER_TILE;
-            dungeonMap[x2, y2] = FOG_TRIGGER_TILE;
         }
-    }
 
+       // dungeonMap[x2, y1] = FOG_TRIGGER_TILE;
+        //dungeonMap[x2, y2] = FOG_TRIGGER_TILE;
+    }
+    /// <summary>
+    /// Adds the room to the dungeon and connects it with the closest dungeon cell.
+    /// </summary>
+    /// <param name="target">Room to add</param>
     void AddRoomToDungeon(DungeonRoom target)
     {
         if (rooms.Count < 2) return;
@@ -372,6 +370,14 @@ public class DungeonGenerator
                     int distance = Math.Abs(x - target.CenterX) + Math.Abs(y - target.CenterY);
                     if (distance <= closestDistance)
                     {
+                        if (target.roomType == RoomType.SecretRoom)
+                        {
+                            //Check that secret rooms are attached only to other rooms, not to coridors
+                            if (!CellInsideAnyRoom(x, y))
+                            {
+                                continue;
+                            }
+                        }
                         closestDistance = distance;
                         closestDungeonCell[0] = x;
                         closestDungeonCell[1] = y;
@@ -389,7 +395,9 @@ public class DungeonGenerator
 
     }
 
-
+    /// <summary>
+    /// Places the doors on map and deletes fog triggers inside rooms.
+    /// </summary>
     void PlaceDoorsOnMap()
     {
         foreach (DungeonRoom room in rooms)
@@ -400,11 +408,44 @@ public class DungeonGenerator
                 {
                     if (x == room.UpperLeftX - 1 || x == room.LowerRightX)
                     {
-                        dungeonMap[x, y] = (dungeonMap[x, y] == FLOOR_TILE_0 || dungeonMap[x, y] == FOG_TRIGGER_TILE) ? DOOR_TILE : dungeonMap[x, y];
+                        switch (room.roomType)
+                        {
+                            case RoomType.KeyLockedRoom:
+                                dungeonMap[x, y] = (dungeonMap[x, y] == FLOOR_TILE_0 || dungeonMap[x, y] == FOG_TRIGGER_TILE) ? KEY_LOCKED_DOOR_TILE : dungeonMap[x, y];
+                                break;
+                            case RoomType.CollapsedRoom:
+                                dungeonMap[x, y] = (dungeonMap[x, y] == FLOOR_TILE_0 || dungeonMap[x, y] == FOG_TRIGGER_TILE) ? COLLAPSED_DOOR_TILE : dungeonMap[x, y];
+                                break;
+                            default:
+                                dungeonMap[x, y] = (dungeonMap[x, y] == FLOOR_TILE_0 || dungeonMap[x, y] == FOG_TRIGGER_TILE) ? DOOR_TILE : dungeonMap[x, y];
+                                break;
+                        }
+                       // dungeonMap[x, y] = (dungeonMap[x, y] == FLOOR_TILE_0 || dungeonMap[x, y] == FOG_TRIGGER_TILE) ? DOOR_TILE : dungeonMap[x, y];
                     }
                     else if (y == room.UpperLeftY - 1 || y == room.LowerRightY)
                     {
-                        dungeonMap[x, y] = (dungeonMap[x, y] == FLOOR_TILE_0 || dungeonMap[x, y] == FOG_TRIGGER_TILE) ? DOOR_TILE : dungeonMap[x, y];
+                        switch (room.roomType)
+                        {
+                            case RoomType.KeyLockedRoom:
+                                dungeonMap[x, y] = (dungeonMap[x, y] == FLOOR_TILE_0 || dungeonMap[x, y] == FOG_TRIGGER_TILE) ? KEY_LOCKED_DOOR_TILE : dungeonMap[x, y];
+                                break;
+                            case RoomType.CollapsedRoom:
+                                dungeonMap[x, y] = (dungeonMap[x, y] == FLOOR_TILE_0 || dungeonMap[x, y] == FOG_TRIGGER_TILE) ? COLLAPSED_DOOR_TILE : dungeonMap[x, y];
+                                break;
+                            default:
+                                dungeonMap[x, y] = (dungeonMap[x, y] == FLOOR_TILE_0 || dungeonMap[x, y] == FOG_TRIGGER_TILE) ? DOOR_TILE : dungeonMap[x, y];
+                                break;
+                        }
+                       // dungeonMap[x, y] = (dungeonMap[x, y] == FLOOR_TILE_0 || dungeonMap[x, y] == FOG_TRIGGER_TILE) ? DOOR_TILE : dungeonMap[x, y];
+                    }
+
+                    //Delete unnecessary fog triggers
+                    else
+                    {
+                        if (dungeonMap[x, y] == FOG_TRIGGER_TILE && CellInsideRoomBounds(room, x, y))
+                        {
+                            dungeonMap[x, y] = FLOOR_TILE_0;
+                        }
                     }
                 }
             }
@@ -415,6 +456,104 @@ public class DungeonGenerator
     {
         return (x >= (room.UpperLeftX - roomSurroundings) && x < (room.LowerRightX + roomSurroundings))
             && (y >= (room.UpperLeftY - roomSurroundings) && y < (room.LowerRightY + roomSurroundings));
+    }
+
+    public bool CellInsideAnyRoom(int x, int y)
+    {
+        foreach (DungeonRoom target in rooms)
+        {
+            if (CellInsideRoomBounds(target, x, y))
+            {
+                return true; 
+            }
+        }
+        return false;
+    }
+
+    void DiscoverRoom(DungeonRoom room)
+    {
+        for (int x = room.UpperLeftX - 1; x < room.LowerRightX + 1; x++)
+        {
+            for (int y = room.UpperLeftY - 1; y < room.LowerRightY + 1; y++)
+            {
+                fogOfWarMap[x, y] = true;
+            }
+        }
+    }
+
+    int[,] CreateRenderingMap(int[,] logicalMap)
+    {
+        int[,] renderingMap = new int[logicalMap.GetLength(0), logicalMap.GetLength(1)];
+        for (int x = 0; x < logicalMap.GetLength(0); x++)
+        {
+            for (int y = 0; y < logicalMap.GetLength(1); y++)
+            {
+                switch (logicalMap[x, y])
+                {
+                    case WALL_TILE:
+                    case VERTICAL_WALL_TILE:
+                    case HORIZONTAL_WALL_TILE:
+                    case SURROUNDING_WALL_TILE:
+                    case CORNER_TILE:
+                        renderingMap[x, y] = WALL_TILE;
+                        break;
+                    case FLOOR_TILE_0:
+                    case FOG_TRIGGER_TILE:
+                        renderingMap[x, y] = FLOOR_TILE_0;
+                        break;
+                    case START_TILE:
+                        renderingMap[x, y] = START_TILE;
+                        break;
+                    case EXIT_TILE:
+                        renderingMap[x, y] = EXIT_TILE;
+                        break;
+                    case DOOR_TILE:
+                        renderingMap[x, y] = DOOR_TILE;
+                        break;
+                    case SECRET_DOOR_TILE:
+                        renderingMap[x, y] = SECRET_DOOR_TILE;
+                        break;
+                    default:
+                        renderingMap[x, y] = logicalMap[x, y];
+                        break;
+
+                }
+            }
+        }
+        return renderingMap;
+    }
+
+    bool[,] CreateWalkableMap(int[,] renderingMap)
+    {
+        bool[,] walkableMap = new bool[renderingMap.GetLength(0), renderingMap.GetLength(1)];
+        for (int x = 0; x < renderingMap.GetLength(0); x++)
+        {
+            for (int y = 0; y < renderingMap.GetLength(1); y++)
+            {
+                switch (renderingMap[x, y])
+                {
+                    case WALL_TILE:
+                    case VERTICAL_WALL_TILE:
+                    case HORIZONTAL_WALL_TILE:
+                    case SURROUNDING_WALL_TILE:
+                    case SECRET_DOOR_TILE:
+                    case CORNER_TILE:
+                        walkableMap[x, y] = false;
+                        break;
+                    case FLOOR_TILE_0:
+                    case DOOR_TILE:
+                    case START_TILE:
+                    case EXIT_TILE:
+                        walkableMap[x, y] = true;
+                        break;
+                    default:
+                        walkableMap[x, y] = false;
+                        break;
+
+                }
+            }
+        }
+        return walkableMap;
     }
 
     public override string ToString()
@@ -435,36 +574,54 @@ public class DungeonGenerator
         return sb.ToString();
     }
 }
+
 public class DungeonRoom
 {
-    private int upperLeftX;
-    private int upperLeftY;
-    public  int UpperLeftX  { get { return upperLeftX; } }
-    public  int UpperLeftY  { get { return upperLeftY; } }
-    private int lowerRightX;
-    private int lowerRightY;
-    public  int LowerRightX { get { return lowerRightX; } }
-    public  int LowerRightY { get { return lowerRightY; } }
-    private int centerY;
-    private int centerX;
-    public  int CenterX     { get { return centerX; } }
-    public  int CenterY     { get { return centerY; } }
-    private int roomWidth;
-    private int roomHeight;
-    public  int RoomWidth   { get { return roomWidth; } }
-    public  int RoomHeight  { get { return roomHeight; } }
+    public RoomType roomType { get; set; }
+    public int UpperLeftX { get; set; }
+    public int UpperLeftY { get; set; }
+    public int LowerRightX { get; set; }
+    public int LowerRightY { get; set; }
+    public int CenterX { get; set; }
+    public int CenterY { get; set; }
+    public int RoomWidth { get; set; }
+    public int RoomHeight { get; set; }
 
 
     public DungeonRoom(int x, int y, int width, int height)
     {
-        upperLeftX = x;
-        upperLeftY = y;
-        roomWidth = width;
-        roomHeight = height;
-        lowerRightX = UpperLeftX + RoomWidth;
-        lowerRightY = UpperLeftY + RoomHeight;
-        centerX = UpperLeftX + RoomWidth / 2;
-        centerY = UpperLeftY + RoomHeight / 2;
+        UpperLeftX = x;
+        UpperLeftY = y;
+        RoomWidth = width;
+        RoomHeight = height;
+        LowerRightX = UpperLeftX + RoomWidth;
+        LowerRightY = UpperLeftY + RoomHeight;
+        CenterX = UpperLeftX + RoomWidth / 2;
+        CenterY = UpperLeftY + RoomHeight / 2;
+        roomType = RoomType.RegularlRoom;
+    }
+
+    public DungeonRoom(int x, int y, int width, int height, RoomType rType)
+    {
+        UpperLeftX = x;
+        UpperLeftY = y;
+        RoomWidth = width;
+        RoomHeight = height;
+        LowerRightX = UpperLeftX + RoomWidth;
+        LowerRightY = UpperLeftY + RoomHeight;
+        CenterX = UpperLeftX + RoomWidth / 2;
+        CenterY = UpperLeftY + RoomHeight / 2;
+        roomType = rType;
+    }
+
+    public DungeonRoom(RoomType rType)
+    {
+        roomType = rType;
+    }
+
+    void PlaceObjectInsideRoom(int objectType, DungeonRoom room, bool objectInteractable)
+    {
+        int x = Program.rand.Next(room.UpperLeftX, room.LowerRightX);
     }
 
     /*public bool UnitInsideRoom(Vector3 transform) 
@@ -488,6 +645,10 @@ public class DungeonRoom
     }
 
 }
+
+public enum RoomType
+{ RegularlRoom = 0, SecretRoom = 1, RadiationRoom = 2, KeyLockedRoom = 3, CollapsedRoom = 4 }
+
 
 public class DungeonDoor
 {
