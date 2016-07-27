@@ -17,7 +17,7 @@ class Program
         for (int i = 0; i < 100; i++)
         {
             dungeon = dunGen.CreateSimpleDungeonMap(8, true, roomParams);
-            using (StreamWriter sw = File.AppendText(@"dungeons190716-01.dnn"))
+            using (StreamWriter sw = File.AppendText(@"dungeons260716-COLUMNS1.dnn"))
                 sw.WriteLine(dungeon.ToString());
         }
         Console.WriteLine("Success");
@@ -52,13 +52,16 @@ public class DungeonGenerator
     public const int EXIT_TILE = 8;
     public const int WALL_TILE = 9;
     public const int SECRET_DOOR_TILE = 10;
-    public const int RADIATION_TILE = 11;
+    public const int RADIATION_FLOOR_TILE = 11;
     public const int KEY_LOCKED_DOOR_TILE = 12;
     public const int COLLAPSED_DOOR_TILE = 13;
     public const int UNLOCKED_DOOR_TILE = 14;
     public const int CLEARED_DOOR_TILE = 15;
     public const int COLUMN_TILE = 16;
     public const int BROKEN_TERMINAL_TILE = 17;
+
+    public const int TERMINAL_TILE = 19;
+    public const int DOCUMENT_TILE = 20;
 
     #endregion
     public bool[,] fogOfWarMap, walkableMap;
@@ -70,6 +73,7 @@ public class DungeonGenerator
     //	List<DungeonDoor> doors = new List<DungeonDoor>();
 
     public DungeonRoom startRoom, exitRoom;
+    private readonly int MAX_COLUMNS_IN_ROOM = 3;
     /// <summary>
     /// Creates the simple dungeon map with size depending on the amount of rooms.
     /// </summary>
@@ -214,7 +218,12 @@ public class DungeonGenerator
                 dungeonMap[room.LowerRightX, room.LowerRightY] = CORNER_TILE;
             }
         }
-        AddRoomToDungeon(room);
+        int columns = Program.rand.Next(MAX_COLUMNS_IN_ROOM);
+        for (int i = 0; i < columns; i++)
+        {
+            PlaceObjectInsideRoom(COLUMN_TILE, room);
+        }
+            AddRoomToDungeon(room);
     }
 
     DungeonRoom FindNearestRoom(DungeonRoom target)
@@ -469,6 +478,20 @@ public class DungeonGenerator
         }
         return false;
     }
+   
+    void PlaceObjectInsideRoom(int objectType, DungeonRoom room)
+    {
+        int x = Program.rand.Next(room.UpperLeftX, room.LowerRightX);
+        int y = Program.rand.Next(room.UpperLeftY, room.LowerRightY);
+        if (dungeonMap[x, y] == FLOOR_TILE_0)
+        {
+            dungeonMap[x, y] = objectType;
+        }
+        else
+        {
+            PlaceObjectInsideRoom(objectType, room);
+        }
+    }
 
     void DiscoverRoom(DungeonRoom room)
     {
@@ -619,10 +642,6 @@ public class DungeonRoom
         roomType = rType;
     }
 
-    void PlaceObjectInsideRoom(int objectType, DungeonRoom room, bool objectInteractable)
-    {
-        int x = Program.rand.Next(room.UpperLeftX, room.LowerRightX);
-    }
 
     /*public bool UnitInsideRoom(Vector3 transform) 
             {
