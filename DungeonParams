@@ -1,0 +1,30 @@
+using System;
+using System.Collections.Generic;
+using System.Xml.Serialization;
+[Serializable]
+class DungeonParams
+{
+    [XmlAttribute]
+    public int MinRooms { get; set; }
+    [XmlAttribute]
+    public int MaxRooms { get; set; }
+    [XmlAttribute]
+    public bool HasExit { get; set; }
+    [XmlArray]
+    public List<DungeonRoom> SpecialRooms { get; set; }
+
+    public DungeonParams()
+    {
+        MinRooms = 1;
+        MaxRooms = 1;
+        HasExit = true;
+    }
+
+    public DungeonParams(int min, int max, bool exit, List<DungeonRoom> rooms)
+    {
+        MinRooms = min;
+        MaxRooms = max;
+        HasExit = exit;
+        SpecialRooms = rooms;
+    }
+    }
