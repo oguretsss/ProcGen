@@ -10,18 +10,19 @@ class Program
     public static Random rand = new Random();
     static void Main()
     {
-        DungeonGenerator dunGen = new DungeonGenerator();
-        LabMapContainer dungeon = dunGen.CreateSimpleDungeonMap(10, true);
-        DungeonRoom[] roomParams = { new DungeonRoom(RoomType.KeyLockedRoom), new DungeonRoom(RoomType.SecretRoom), new DungeonRoom(RoomType.SecretRoom), new DungeonRoom(RoomType.CollapsedRoom) };
-        Console.WriteLine(dungeon.ToString());
-        for (int i = 0; i < 100; i++)
-        {
-            dungeon = dunGen.CreateSimpleDungeonMap(8, true, roomParams);
-            using (StreamWriter sw = File.AppendText(@"dungeons260716-COLUMNS1.dnn"))
-                sw.WriteLine(dungeon.ToString());
-        }
-        Console.WriteLine("Success");
-        Console.ReadKey();
+      DungeonGenerator dunGen = new DungeonGenerator();
+      LabMapContainer dungeon = dunGen.CreateSimpleDungeonMap(10, true);
+      DungeonRoom[] roomParams = { new DungeonRoom(RoomType.KeyLockedRoom), new DungeonRoom(RoomType.SecretRoom), new DungeonRoom(RoomType.SecretRoom), new DungeonRoom(RoomType.CollapsedRoom), new DungeonRoom(RoomType.RadiationRoom) };
+      Console.WriteLine(dungeon.ToString());
+      for (int i = 0; i < 100; i++)
+      {
+        dungeon = dunGen.CreateSimpleDungeonMap(8, true, roomParams);
+        Console.Write(".");
+        using (StreamWriter sw = File.AppendText(@"dungeons230517-COLUMNS4.dnn"))
+          sw.WriteLine(dungeon.ToString());
+      }
+      Console.WriteLine("Success");
+      Console.ReadKey();
     }
 }
   public class DungeonGenerator
