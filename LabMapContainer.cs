@@ -2,8 +2,9 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading.Tasks;
 
-namespace ConsoleApplication1
+namespace DunGen2._0
 {
   public class LabMapContainer
   {
@@ -30,7 +31,7 @@ namespace ConsoleApplication1
     {
       StringBuilder sb = new StringBuilder();
       sb.Append("\n=============Start of the dungeon==================\n");
-      sb.Append(System.String.Format("Dungeon of {0} columns and {1} rows, containing {2} rooms.\n", columns, rows, rooms.Count));
+      sb.Append(string.Format("Dungeon of {0} columns and {1} rows, containing {2} rooms.\n", columns, rows, rooms.Count));
       sb.Append("Dungeon map:\n");
       for (int x = 0; x < columns; x++)
       {
@@ -65,6 +66,17 @@ namespace ConsoleApplication1
               break;
             case DungeonGenerator.DOOR_TILE:
               sb.Append("= ");
+              break;
+            case DungeonGenerator.DYNAMITE:
+              sb.Append("X ");
+              break;
+            case DungeonGenerator.KEY:
+              sb.Append("V ");
+              break;
+            case DungeonGenerator.KEY_ROOM_LOOT:
+            case DungeonGenerator.RADIATION_LOOT:
+            case DungeonGenerator.RANDOM_LOOT:
+              sb.Append("L ");
               break;
             default:
               sb.Append(dungeonMap[x, y].ToString() + " ");
