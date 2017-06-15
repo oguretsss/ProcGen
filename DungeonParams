@@ -1,9 +1,12 @@
 using System;
 using System.Collections.Generic;
 using System.Xml.Serialization;
-[Serializable]
-class DungeonParams
+
+namespace DunGen2._0
 {
+  [Serializable]
+  class DungeonParams
+  {
     [XmlAttribute]
     public int MinRooms { get; set; }
     [XmlAttribute]
@@ -13,18 +16,23 @@ class DungeonParams
     [XmlArray]
     public List<DungeonRoom> SpecialRooms { get; set; }
 
+    public List<string> Items { get; set; }
+
     public DungeonParams()
     {
-        MinRooms = 1;
-        MaxRooms = 1;
-        HasExit = true;
+      MinRooms = 1;
+      MaxRooms = 1;
+      HasExit = true;
+      Items = new List<string>();
     }
 
     public DungeonParams(int min, int max, bool exit, List<DungeonRoom> rooms)
     {
-        MinRooms = min;
-        MaxRooms = max;
-        HasExit = exit;
-        SpecialRooms = rooms;
+      MinRooms = min;
+      MaxRooms = max;
+      HasExit = exit;
+      SpecialRooms = rooms;
+      Items = new List<string>();
     }
-    }
+  }
+}
