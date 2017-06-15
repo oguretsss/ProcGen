@@ -11,15 +11,19 @@ class Program
     static void Main()
     {
       DungeonGenerator dunGen = new DungeonGenerator();
-      LabMapContainer dungeon = dunGen.CreateSimpleDungeonMap(10, true);
+      LabMapContainer dungeon = dunGen.CreateSimpleDungeonMap(10, true, 0);
       DungeonRoom[] roomParams = { new DungeonRoom(RoomType.KeyLockedRoom), new DungeonRoom(RoomType.SecretRoom), new DungeonRoom(RoomType.SecretRoom), new DungeonRoom(RoomType.CollapsedRoom), new DungeonRoom(RoomType.RadiationRoom) };
       Console.WriteLine(dungeon.ToString());
       for (int i = 0; i < 100; i++)
       {
-        dungeon = dunGen.CreateSimpleDungeonMap(8, true, roomParams);
+        dungeon = dunGen.CreateSimpleDungeonMap(8, true, i, roomParams);
         Console.Write(".");
-        using (StreamWriter sw = File.AppendText(@"dungeons230517-COLUMNS4.dnn"))
+        using (StreamWriter sw = File.AppendText(@"dungeons120617-COLUMNS4.dnn"))
+        {
+          sw.WriteLine("Number {0}", i);
           sw.WriteLine(dungeon.ToString());
+        }
+        
       }
       Console.WriteLine("Success");
       Console.ReadKey();
