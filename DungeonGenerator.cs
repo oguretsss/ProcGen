@@ -125,7 +125,7 @@ namespace DunGen2._0
         startRoomNumber = Program.rand.Next(0, rooms.Count);
       }
       startRoom = rooms[startRoomNumber];
-      dungeonMap[startRoom.CenterX, startRoom.CenterY] = START_TILE;
+      PlaceObjectInsideRoom(START_TILE, startRoom);
 
       if (hasExitToNextFloor)
       {
